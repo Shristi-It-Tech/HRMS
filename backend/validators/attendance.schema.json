@@ -1,0 +1,24 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["userId", "type", "timestamp"],
+    "properties": {
+      "userId": { "bsonType": "objectId" },
+      "type": { "enum": ["clock_in", "clock_out"] },
+      "date": { "bsonType": "string" },
+      "time": { "bsonType": "string" },
+      "timestamp": { "bsonType": "date" },
+      "location": { "bsonType": "string" },
+      "coordinates": { "bsonType": "string" },
+      "deviceInfo": { "bsonType": "string" },
+      "isLate": { "bsonType": "bool" },
+      "lateDuration": { "bsonType": "int" },
+      "isEarlyLeave": { "bsonType": "bool" },
+      "reason": { "bsonType": "string" },
+      "photoUrl": { "bsonType": "string" },
+      "permissionId": { "bsonType": ["objectId", "null"] },
+      "workSettingId": { "bsonType": "objectId" },
+      "status": { "enum": ["valid", "pending", "rejected"] }
+    }
+  }
+}

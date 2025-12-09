@@ -1,0 +1,37 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["name", "email", "role", "status", "passwordHash"],
+    "properties": {
+      "nik": { "bsonType": "string" },
+      "email": { "bsonType": "string" },
+      "phone": { "bsonType": "string" },
+      "name": { "bsonType": "string" },
+      "role": { "enum": ["employee", "supervisor", "manager", "owner", "hr"] },
+      "division": { "bsonType": "string" },
+      "department": { "bsonType": "string" },
+      "passwordHash": { "bsonType": "string" },
+      "salt": { "bsonType": "string" },
+      "status": { "enum": ["active", "inactive"] },
+      "profileImage": { "bsonType": ["string", "null"] },
+      "cvUrl": { "bsonType": ["string", "null"] },
+      "diplomaUrl": { "bsonType": ["string", "null"] },
+      "address": { "bsonType": "string" },
+      "gender": { "bsonType": "string" },
+      "dob": { "bsonType": "string" },
+      "leaveBalance": { "bsonType": "int" },
+      "performanceScore": { "bsonType": "double" },
+      "joinDate": { "bsonType": "string" },
+      "tasks": {
+        "bsonType": "array",
+        "items": { "bsonType": "objectId" }
+      },
+      "permissionHistory": {
+        "bsonType": "array",
+        "items": { "bsonType": "objectId" }
+      },
+      "createdAt": { "bsonType": "date" },
+      "updatedAt": { "bsonType": "date" }
+    }
+  }
+}

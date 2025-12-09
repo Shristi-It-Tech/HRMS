@@ -1,0 +1,386 @@
+Prioritize the items from the top first.
+
+SUPERADMIN
+
+Permissions and features can be configured by the superadmin.
+
+Superadmin page:
+
+What superadmin can configure:
+
+Data management
+
+Login manager (create login similar to employee)
+
+Reports → export to Word, TXT, Excel, PDF
+
+Custom roles (role builder)
+
+Fix export bugs
+
+Fix leave bugs
+
+OWNER
+
+Can view salary reports and attendance like the manager
+
+Owner dashboard: salary, reports, performance
+
+Owner can give targets by division →
+
+Visible in user dashboard
+
+User uploads target reports (Word, Excel, PDF, TXT)
+
+Other roles approve
+
+Progress bar updates
+
+Page for salary (user dashboard) → "tensorflow fixed"
+
+Attendance radius 5–10 meters, owner can add custom office locations
+
+Owner can export employee payslip
+
+Owner can view detailed location photo lists (who is in each photo)
+
+Owner can set working hours (clock-in and clock-out time)
+
+Owner can assign tasks to individual employees
+
+Owner can edit office locations
+
+Owner can see why an employee has a low performance score (e.g., incomplete tasks recorded)
+
+SUPERVISOR
+
+Page similar to Manager but manages performance achievements:
+
+Attendance
+
+Achievement
+
+Target completion
+
+Supervisor can do attendance
+
+Task approval:
+
+View task details
+
+Approve / Deny
+
+Add comments
+
+Attendance approval:
+
+Employee name, division, status (clock-in/out), description (late / on time / early leave)
+
+Performance page
+
+MANAGER
+Dashboard Summary
+
+Total employees
+
+Leave pending
+
+Late employees
+
+Attendance activity
+
+Active employees
+
+Team Management
+
+CRUD Employee
+
+Create → NIK, name, division, email, phone number, address
+
+Read → view full data
+
+Update → edit all data except CV & certificate
+
+Delete employee
+
+Search bar
+
+Manager must approve any profile changes submitted by employees
+
+Manager can edit: name, division, email, phone, join date
+
+Leave Approval
+
+Title, leave type
+
+Number of days
+
+Reason / description
+
+Upload proof file (for medical and normal leave)
+
+Search bar + history
+
+Profile Change Approval
+
+Employee name
+
+What field is being changed
+
+Salary & Payroll
+
+Salary report features
+
+Raise salary
+
+Salary deductions with title (e.g., BPJS)
+
+Choose employee or division
+
+Salary report page adds new text input type
+
+Manager payroll report must have division filter
+
+Employee Selfie Logs
+
+Photo
+
+Detailed data:
+
+Status (check-in / out)
+
+Description (on time, late, early leave, etc.)
+
+Time
+
+Location name
+
+Longitude & latitude
+
+Attendance Permission Approvals
+
+Tab for approving:
+
+Late permission
+
+Early leave permission
+
+Manager Attendance
+
+Manager also uses TensorFlow face detection + location + time
+
+Manager can take attendance (same as employee)
+
+Manager Leave
+
+Manager can apply leave and must be approved by owner
+
+Manager Performance Page
+
+Same as employee performance
+
+EMPLOYEE FEATURES
+Attendance (AI + Location)
+
+Uses ML (TensorFlow)
+
+Late reason input
+
+Early leave request
+
+Cannot check-in if outside the defined radius (5–10m) unless allowed branch office
+
+Branch offices have location + working hours
+
+Attendance allowed only between 7 AM and 9 AM
+
+Owner can set custom working hours per employee (future plan)
+
+If employee does not clock out, system asks for a reason
+
+Automatic attendance close after working hour ends
+
+Face lock system:
+
+First-time registration captures face
+
+AI detects face during WFH
+
+Eye-blink detection (anti-spoofing)
+
+Prevent if face covered or camera permission denied
+
+Camera frame must always display (no blank page after clock-in)
+
+Alerts must be fixed
+
+After late time ends, clock-in button is disabled
+
+Forgot clock-in/clock-out tab
+
+If forgot clock-in and past late time → clock-in disabled, clock-out enabled
+
+Attendance Logic
+
+Late reduces salary (salary deduction logic)
+
+Early leave detection
+
+Cannot clock-out before defined time unless with approved permission
+
+Clock-out time affects performance
+
+Employee Profile
+
+NIK
+
+Name
+
+Division
+
+Email
+
+Phone
+
+Join date
+
+Address
+
+CV & Certificate upload
+
+Leave
+
+Leave title
+
+Leave type: annual or sick
+
+Number of days
+
+Reason / description
+
+Search leave history by title keyword
+
+Shows remaining leave
+
+Pending requests
+
+Leave reduces only when manager approves
+
+Fix leave bug
+
+Performance
+
+Performance score
+
+Completed tasks
+
+Pending tasks
+
+Task list from owner
+
+Search task
+
+Target achieved / needs improvement
+
+Login History
+
+Status late / on time / early leave
+
+WORK / TASK SYSTEM
+
+Owner → sends tasks to employee
+
+Employee → completes tasks
+
+Supervisor → approves tasks
+
+Tasks that are:
+
+Pending → status = waiting
+
+Not started → “next action” = start work
+
+Completed & approved → mark as finished
+
+SYSTEM-WIDE FEATURES
+Export Functions
+
+Export Word, Excel, PDF, TXT
+
+Export payslip
+
+Export salary deductions clearly
+
+Performance Calculation
+
+Based on:
+
+Attendance
+
+Target completion
+
+Attendance Location
+
+Accuracy 20–30
+
+Radius 5–10 meters
+
+Owner can add custom locations
+
+Distance logic updated as needed
+
+Universal Dashboard System
+
+Only Employee Dashboard remains
+
+All dashboards (Manager, Supervisor, Owner) removed
+
+Everything is displayed under one unified dashboard using permission checker
+
+Universal Modules
+
+Profile
+
+Team management (owner only views)
+
+Attendance
+
+Leave
+
+Performance
+
+Summary
+
+Settings
+
+Payroll report
+
+My salary
+
+Employee CRUD management
+
+Role management
+
+Security
+
+Find all vulnerabilities
+
+Refactor code
+
+Improve system safety
+
+Formatters JS
+
+Must be updated
+
+Permission Checker
+
+Implement strict permission-checking system
+
+Role tasks sent from Manager → Owner
+
+Responsive
+
+Camera must be mobile responsive
+
+Entire system must be responsive

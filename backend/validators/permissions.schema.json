@@ -1,0 +1,23 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["userId", "type", "status", "requestedAt"],
+    "properties": {
+      "userId": { "bsonType": "objectId" },
+      "attendanceId": { "bsonType": ["objectId", "null"] },
+      "type": { "enum": ["late", "early_leave", "other"] },
+      "note": { "bsonType": "string" },
+      "fileUrl": { "bsonType": ["string", "null"] },
+      "durationMinutes": { "bsonType": "int" },
+      "status": { "enum": ["pending", "approved", "rejected"] },
+      "requestedAt": { "bsonType": "date" },
+      "approvedBy": { "bsonType": ["objectId", "null"] },
+      "rejectedBy": { "bsonType": ["objectId", "null"] },
+      "decisionNotes": { "bsonType": "string" },
+      "approvedAt": { "bsonType": ["date", "null"] },
+      "workSettingId": { "bsonType": "objectId" },
+      "division": { "bsonType": "string" },
+      "role": { "enum": ["employee", "supervisor", "manager", "owner"] }
+    }
+  }
+}
