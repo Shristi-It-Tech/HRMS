@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { GlassCard } from '../UI/Cards';
 import { useAuth } from '../../hooks/useAuth';
-import { submitTimesheet, fetchMyTimesheets, fetchAllTimesheets, updateTimesheet } from '../../api/timesheetApi';
+import { fetchMyTimesheets, fetchAllTimesheets, submitTimesheet } from '../../api/timesheetApi';
 import { fetchProjects, createProject, updateProject, deleteProject } from '../../api/projectApi';
 import { showSwal } from '../../utils/swal';
 
@@ -20,6 +20,15 @@ const formatDateKey = (dateObj) => {
   const month = `${dateObj.getMonth() + 1}`.padStart(2, '0');
   const day = `${dateObj.getDate()}`.padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const normalizeDateString = (value) => {
+  if (!value) return '';
+  // If already in YYYY-MM-DD keep it
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (!isNaN(parsed)) return formatDateKey(parsed);
+  return value;
 };
 
 const getInitials = (name = '') => {
@@ -41,96 +50,20 @@ const isWeekend = (dateObj) => {
   return day === 0 || day === 6;
 };
 
-const TimesheetEntryModal = ({ isOpen, onClose, onSubmit, projects, loading, initialEntry = null }) => {
-  const [project, setProject] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [description, setDescription] = useState('');
-
-  useEffect(() => {
-    if (isOpen && initialEntry) {
-      setProject(initialEntry.projectId || initialEntry.project_id || '');
-      setDate(initialEntry.date || new Date().toISOString().split('T')[0]);
-      setStartTime(initialEntry.startTime || '');
-      setEndTime(initialEntry.endTime || '');
-      setDescription(initialEntry.description || '');
-    } else if (isOpen) {
-      setProject('');
-      setDate(new Date().toISOString().split('T')[0]);
-      setStartTime('');
-      setEndTime('');
-      setDescription('');
-    }
-  }, [isOpen, initialEntry]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!project || !date || !startTime || !endTime) {
-      showSwal('Error', 'Please fill all required fields', 'error');
-      return;
-    }
-    // Validate times
-    const [startH, startM] = startTime.split(':').map(Number);
-    const [endH, endM] = endTime.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    if (endMinutes <= startMinutes) {
-      showSwal('Error', 'End time must be after start time', 'error');
-      return;
-    }
-    const projectObj = projects.find(p => (p.id || p._id) === project);
-    onSubmit({ projectId: project, projectName: projectObj?.name || '', date, startTime, endTime, description });
+const buildTimeRangeFromHours = (hours) => {
+  const startMinutes = 9 * 60; // default 09:00
+  const endMinutes = startMinutes + Math.round(Number(hours || 0) * 60);
+  const toStr = (total) => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  return {
+    startTime: toStr(startMinutes),
+    endTime: toStr(Math.max(endMinutes, startMinutes + 1)),
   };
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
-        <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={onClose}>&times;</button>
-        <h2 className="text-xl font-bold mb-1">{initialEntry ? 'Edit Time Entry' : 'Add Manual Time Entry'}</h2>
-        <p className="text-gray-500 mb-4 text-sm">Add time entry for work done without using the timer</p>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Project <span className="text-red-500">*</span></label>
-            <select className="border rounded px-2 py-1 w-full" value={project} onChange={e => setProject(e.target.value)} required>
-              <option value="">Select project</option>
-              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Date <span className="text-red-500">*</span></label>
-            <input type="date" className="border rounded px-2 py-1 w-full" value={date} onChange={e => setDate(e.target.value)} required />
-          </div>
-          <div className="flex gap-2 mb-3">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">Start Time <span className="text-red-500">*</span></label>
-              <input type="time" className="border rounded px-2 py-1 w-full" value={startTime} onChange={e => setStartTime(e.target.value)} required />
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">End Time <span className="text-red-500">*</span></label>
-              <input type="time" className="border rounded px-2 py-1 w-full" value={endTime} onChange={e => setEndTime(e.target.value)} required />
-            </div>
-          </div>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-            <textarea className="border rounded px-2 py-1 w-full" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Additional details about the work performed" />
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <button type="button" className="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700" onClick={onClose}>Cancel</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded bg-black text-white font-semibold disabled:opacity-50">{loading ? 'Saving...' : 'Add Entry'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 };
 
-const TimesheetsPage = () => {
+const TimesheetsPage = ({ showCalendar = false, showWeek = true }) => {
   const { authUser, apiFetch } = useAuth();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
   const [allTimesheets, setAllTimesheets] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -145,7 +78,13 @@ const TimesheetsPage = () => {
   const [projectForm, setProjectForm] = useState({ name: '', code: '', client: '', status: 'active', startDate: '', endDate: '', budget: '', description: '' });
   const [editingProject, setEditingProject] = useState(null);
   const [projectSaving, setProjectSaving] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null);
+  const [weekStart, setWeekStart] = useState(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    return new Date(now.setDate(diff));
+  });
+  const [weeklyRows, setWeeklyRows] = useState([{ id: `row-${Date.now()}`, projectId: '', description: '', hours: {} }]);
 
   const isManager = authUser?.role === 'manager' || authUser?.role === 'owner';
 
@@ -198,31 +137,6 @@ const TimesheetsPage = () => {
     };
     loadProjects();
   }, [apiFetch, refreshKey]);
-
-  const handleAddEntry = async (entry) => {
-    setLoading(true);
-    try {
-      const result = editingEntry
-        ? await updateTimesheet(apiFetch, editingEntry._id, { ...entry, user: authUser })
-        : await submitTimesheet(apiFetch, { ...entry, user: authUser });
-      if (result && (result.success || result.timesheet)) {
-        const msg = result.localOnly
-          ? 'Timesheet saved locally (offline/session issue). It will stay on this device.'
-          : editingEntry
-          ? 'Timesheet updated successfully!'
-          : 'Timesheet submitted successfully!';
-        showSwal('Success', msg, 'success', 1800);
-      }
-      setModalOpen(false);
-      setEditingEntry(null);
-      // Trigger refetch
-      setRefreshKey(prev => prev + 1);
-    } catch (error) {
-      showSwal('Error', error.payload?.message || error.message || 'Failed to submit timesheet', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const resetProjectForm = () => {
     setProjectForm({ name: '', code: '', client: '', status: 'active', startDate: '', endDate: '', budget: '', description: '' });
@@ -325,7 +239,8 @@ const TimesheetsPage = () => {
     const allowedDates = new Set(dateRange.map((date) => formatDateKey(date)));
     const map = {};
     allTimesheets.forEach((ts) => {
-      if (!allowedDates.has(ts.date)) return;
+      const tsDate = normalizeDateString(ts.date);
+      if (!allowedDates.has(tsDate)) return;
       const userInfo = typeof ts.userId === 'object' && ts.userId !== null
         ? ts.userId
         : { _id: ts.userId, name: 'Unknown' };
@@ -345,7 +260,7 @@ const TimesheetsPage = () => {
       const hours = calculateHours(ts.startTime, ts.endTime);
       map[id].totalHours += hours;
       map[id].entries += 1;
-      map[id].dayHours[ts.date] = (map[id].dayHours[ts.date] || 0) + hours;
+      map[id].dayHours[tsDate] = (map[id].dayHours[tsDate] || 0) + hours;
     });
     return Object.values(map).map((row) => {
       const planHours = workingDaysInRange * 8;
@@ -378,6 +293,106 @@ const TimesheetsPage = () => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   };
 
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days.push({ key: formatDateKey(d), label: d.toLocaleDateString('default', { weekday: 'short' }), date: d });
+    }
+    return days;
+  }, [weekStart]);
+
+  const handleWeekHoursChange = (rowId, dayKey, value) => {
+    setWeeklyRows((rows) =>
+      rows.map((row) =>
+        row.id === rowId ? { ...row, hours: { ...row.hours, [dayKey]: value } } : row
+      )
+    );
+  };
+
+  const handleWeekRowChange = (rowId, field, value) => {
+    setWeeklyRows((rows) =>
+      rows.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
+    );
+  };
+
+  const addWeekRow = () => {
+    setWeeklyRows((rows) => [...rows, { id: `row-${Date.now()}-${rows.length}`, projectId: '', description: '', hours: {} }]);
+  };
+
+  const removeWeekRow = (rowId) => {
+    setWeeklyRows((rows) => rows.filter((r) => r.id !== rowId));
+  };
+
+  const submitWeekEntries = async () => {
+    setLoading(true);
+    try {
+      const createdEntries = [];
+      for (const row of weeklyRows) {
+        const projectObj = projects.find((p) => (p.id || p._id) === row.projectId);
+        const projectName = projectObj?.name || '';
+        for (const day of weekDays) {
+          const hours = Number(row.hours?.[day.key] || 0);
+          if (!row.projectId || hours <= 0) continue;
+          const { startTime, endTime } = buildTimeRangeFromHours(hours);
+          const payload = {
+            projectId: row.projectId,
+            projectName,
+            date: day.key,
+            startTime,
+            endTime,
+            description: row.description || '',
+            user: authUser,
+          };
+          const result = await submitTimesheet(apiFetch, payload);
+          const saved = result?.timesheet || result?.data || result || payload;
+          createdEntries.push({
+            ...payload,
+            ...saved,
+            projectId: payload.projectId,
+            projectName: payload.projectName || saved.projectName,
+          });
+        }
+      }
+      if (createdEntries.length) {
+        setTimesheets((prev) => {
+          const map = new Map();
+          [...createdEntries, ...prev].forEach((ts) => {
+            const key = ts._id || `${ts.date}-${ts.startTime}-${ts.projectId || ts.projectName}`;
+            map.set(key, ts);
+          });
+          return Array.from(map.values());
+        });
+      }
+      showSwal('Success', 'Week entries saved', 'success', 1500);
+      setRefreshKey((p) => p + 1);
+    } catch (err) {
+      showSwal('Error', err?.payload?.message || err.message || 'Failed to save week entries', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const personalDayMap = useMemo(() => {
+    const map = {};
+    timesheets.forEach((ts) => {
+      const key = normalizeDateString(ts.date) || 'Unknown';
+      const hours = calculateHours(ts.startTime, ts.endTime);
+      const projectName =
+        ts.projectName ||
+        (projects.find((p) => (p.id || p._id) === ts.projectId)?.name) ||
+        'Unspecified';
+      if (!map[key]) {
+        map[key] = { total: 0, projects: {}, count: 0 };
+      }
+      map[key].total += hours;
+      map[key].count += 1;
+      map[key].projects[projectName] = (map[key].projects[projectName] || 0) + hours;
+    });
+    return map;
+  }, [timesheets, projects]);
+
   if (isManager) {
     return (
       <div className="space-y-6">
@@ -387,21 +402,23 @@ const TimesheetsPage = () => {
               <h1 className="text-2xl font-bold">Team Workload</h1>
               <p className="text-gray-600">Calendar-style overview of timesheet submissions</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
-                onClick={() => handleMonthChange(-1)}
-              >
-                &larr;
-              </button>
-              <div className="min-w-[150px] text-center font-semibold">{monthLabel}</div>
-              <button
-                className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
-                onClick={() => handleMonthChange(1)}
-              >
-                &rarr;
-              </button>
-            </div>
+            {showCalendar && (
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+                  onClick={() => handleMonthChange(-1)}
+                >
+                  &larr;
+                </button>
+                <div className="min-w-[150px] text-center font-semibold">{monthLabel}</div>
+                <button
+                  className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+                  onClick={() => handleMonthChange(1)}
+                >
+                  &rarr;
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex gap-2 flex-wrap">
@@ -583,139 +600,184 @@ const TimesheetsPage = () => {
     );
   }
 
+  const groupedDays = useMemo(() => {
+    return Object.entries(personalDayMap)
+      .map(([date, info]) => ({
+        date,
+        totalHours: info.total,
+        projects: info.projects,
+        count: info.count,
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [personalDayMap, timesheets]);
+
   return (
-    <GlassCard className="mt-6 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">My Timesheets</h1>
-        <button className="bg-black text-white px-4 py-2 rounded font-semibold" onClick={() => setModalOpen(true)}>
-          + Add Manual Entry
-        </button>
+    <GlassCard className="mt-6 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">My Timesheets</h1>
+          {showWeek ? (
+            <p className="text-gray-600 text-sm">Use the weekly grid to add hours; calendar updates automatically.</p>
+          ) : (
+            <p className="text-gray-600 text-sm">Calendar view of all your submitted hours.</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+            onClick={() => handleMonthChange(-1)}
+          >
+            &larr;
+          </button>
+          <div className="min-w-[150px] text-center font-semibold">{monthLabel}</div>
+          <button
+            className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+            onClick={() => handleMonthChange(1)}
+          >
+            &rarr;
+          </button>
+        </div>
       </div>
+
       {fetching ? (
         <p className="text-center py-8 text-gray-500">Loading timesheets...</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="px-4 py-3 text-left font-semibold">Date</th>
-                  <th className="px-4 py-3 text-left font-semibold">Projects</th>
-                  <th className="px-4 py-3 text-left font-semibold">Entries</th>
-                  <th className="px-4 py-3 text-left font-semibold">Total Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(
-                  timesheets.reduce((acc, ts) => {
-                    const key = ts.date || 'Unknown';
-                    const hours = calculateHours(ts.startTime, ts.endTime);
-                    const projectName =
-                      ts.projectName ||
-                      (projects.find(p => (p.id || p._id) === ts.projectId)?.name) ||
-                      'Unspecified';
-                    if (!acc[key]) {
-                      acc[key] = {
-                        date: key,
-                        totalHours: 0,
-                        projects: {},
-                        count: 0,
-                        entries: [],
-                      };
-                    }
-                    acc[key].totalHours += hours;
-                    acc[key].count += 1;
-                    acc[key].projects[projectName] = (acc[key].projects[projectName] || 0) + hours;
-                    acc[key].entries.push({ ...ts, projectName });
-                    return acc;
-                  }, {})
-                )
-                  .sort((a, b) => new Date(b.date) - new Date(a.date))
-                  .map((group) => (
-                    <tr key={group.date} className="border-b hover:bg-gray-50 align-top">
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">{group.date}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(group.projects).map(([name, hours]) => (
-                            <span key={name} className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-semibold">
-                              {name}
-                              <span className="ml-2 text-blue-600">{hours.toFixed(2)}h</span>
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{group.count}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-blue-600">{group.totalHours.toFixed(2)}h</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          {timesheets.length === 0 && <p className="text-center py-8 text-gray-500">No timesheet entries yet. Add one to get started!</p>}
-          {timesheets.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-3">Entries</h3>
-              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-                <table className="w-full min-w-[700px]">
+          {showCalendar && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Calendar</h3>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-green-200 border border-green-300" /> 8h+</span>
+                  <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-blue-200 border border-blue-300" /> 4-7h</span>
+                  <span className="flex items-center gap-1"><span className="h-3 w-3 rounded-full bg-amber-100 border border-amber-200" /> &lt;4h</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-2 text-sm">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {day}
+                  </div>
+                ))}
+                {dateRange.map((date) => {
+                  const key = formatDateKey(date);
+                  const info = personalDayMap[key];
+                  const projects = info?.projects || {};
+                  return (
+                    <div
+                      key={key}
+                      className={`border rounded-lg p-2 min-h-[90px] flex flex-col gap-1 ${isWeekend(date) ? 'bg-gray-50' : ''}`}
+                    >
+                      <div className="flex items-center justify-between text-xs text-gray-600">
+                        <span>{date.getDate()}</span>
+                        {info && <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${cellColor(info.total)}`}>{info.total.toFixed(2)}h</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(projects).map(([name, hours]) => (
+                          <span key={name} className="bg-gray-100 text-[11px] px-2 py-0.5 rounded-full">
+                            {name} <span className="text-blue-600 font-semibold">{hours.toFixed(1)}h</span>
+                          </span>
+                        ))}
+                        {!info && <span className="text-[11px] text-gray-400">No entries</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {showWeek && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold">Week Entry</h3>
+                  <p className="text-gray-600 text-sm">Log hours per project across the week</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+                    onClick={() => setWeekStart((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 7))}
+                  >
+                    &larr;
+                  </button>
+                  <div className="text-sm font-semibold">
+                    {weekDays[0].date.toLocaleDateString()} - {weekDays[6].date.toLocaleDateString()}
+                  </div>
+                  <button
+                    className="px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
+                    onClick={() => setWeekStart((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 7))}
+                  >
+                    &rarr;
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="px-4 py-3 text-left font-semibold">Date</th>
-                      <th className="px-4 py-3 text-left font-semibold">Project</th>
-                      <th className="px-4 py-3 text-left font-semibold">Time</th>
-                      <th className="px-4 py-3 text-left font-semibold">Hours</th>
-                      <th className="px-4 py-3 text-left font-semibold">Actions</th>
+                      <th className="px-3 py-2 text-left font-semibold w-48">Project</th>
+                      <th className="px-3 py-2 text-left font-semibold w-40">Task / Description</th>
+                      {weekDays.map((d) => (
+                        <th key={d.key} className="px-2 py-2 text-center font-semibold">{d.label} {d.date.getDate()}</th>
+                      ))}
+                      <th className="px-2 py-2 text-center font-semibold">Remove</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {timesheets.map((ts) => {
-                      const [startH, startM] = (ts.startTime || '').split(':').map(Number);
-                      const [endH, endM] = (ts.endTime || '').split(':').map(Number);
-                      const start = startH * 60 + startM;
-                      const end = endH * 60 + endM;
-                      const hours = end > start ? ((end - start) / 60).toFixed(2) : 0;
-                      const projectName =
-                        ts.projectName ||
-                        (projects.find(p => (p.id || p._id) === ts.projectId)?.name) ||
-                        'Unspecified';
-                      return (
-                        <tr key={ts._id} className="border-b hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">{ts.date}</td>
-                          <td className="px-4 py-3 text-sm">{projectName}</td>
-                          <td className="px-4 py-3 text-sm">{ts.startTime} - {ts.endTime}</td>
-                          <td className="px-4 py-3 text-sm font-bold text-blue-600">{hours}h</td>
-                          <td className="px-4 py-3 text-sm">
-                            <button
-                              type="button"
-                              className="text-blue-600 font-semibold"
-                              onClick={() => {
-                                setEditingEntry({ ...ts, projectName });
-                                setModalOpen(true);
-                              }}
-                            >
-                              Edit
-                            </button>
+                    {weeklyRows.map((row) => (
+                      <tr key={row.id} className="border-b">
+                        <td className="px-3 py-2">
+                          <select className="border rounded px-2 py-1 w-full" value={row.projectId} onChange={(e) => handleWeekRowChange(row.id, 'projectId', e.target.value)}>
+                            <option value="">Select project</option>
+                            {projects.map((p) => (
+                              <option key={p.id || p._id} value={p.id || p._id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded px-2 py-1 w-full"
+                            placeholder="Description / Task"
+                            value={row.description}
+                            onChange={(e) => handleWeekRowChange(row.id, 'description', e.target.value)}
+                          />
+                        </td>
+                        {weekDays.map((d) => (
+                          <td key={d.key} className="px-2 py-1 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.25"
+                              className="w-20 border rounded px-2 py-1 text-center"
+                              value={row.hours[d.key] || ''}
+                              onChange={(e) => handleWeekHoursChange(row.id, d.key, e.target.value)}
+                              placeholder="0"
+                            />
                           </td>
-                        </tr>
-                      );
-                    })}
+                        ))}
+                        <td className="px-2 py-2 text-center">
+                          {weeklyRows.length > 1 && (
+                            <button type="button" className="text-red-500 font-semibold text-xs" onClick={() => removeWeekRow(row.id)}>Delete</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="flex justify-between mt-3">
+                <button type="button" className="text-sm font-semibold text-blue-600" onClick={addWeekRow}>+ Add Row</button>
+                <div className="space-x-2">
+                  <button type="button" onClick={submitWeekEntries} disabled={loading} className="bg-black text-white px-4 py-2 rounded font-semibold disabled:opacity-60">
+                    {loading ? 'Saving...' : 'Submit Week'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </>
       )}
-      <TimesheetEntryModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingEntry(null);
-        }}
-        onSubmit={handleAddEntry}
-        projects={projects}
-        loading={loading}
-        initialEntry={editingEntry}
-      />
     </GlassCard>
   );
 };
