@@ -101,6 +101,16 @@ export const useAuth = () => {
         }
     };
 
+    const clearPersistedAuth = () => {
+        // Make sure all auth-related caches are wiped so reloads do not auto-login.
+        localStorage.removeItem('authUser');
+        localStorage.removeItem('authTokens');
+        localStorage.removeItem('employees');
+        localStorage.removeItem('pendingProfileChanges');
+        localStorage.removeItem('pendingTasks');
+        localStorage.removeItem('pendingAttendance');
+    };
+
     const handleLogout = async () => {
         try {
             await fetch(buildUrl('/api/auth/logout'), {
@@ -111,6 +121,7 @@ export const useAuth = () => {
         } catch (_) {
             // swallow errors
         }
+        clearPersistedAuth();
         setAuthUser(null);
         setAuthTokens(null);
         setIsLogoutModalOpen(false);
