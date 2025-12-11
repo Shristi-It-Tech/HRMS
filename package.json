@@ -5,8 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "pnpm --dir backend run dev",
     "build": "vite build",
+    "build:frontend": "vite build",
+    "build:backend": "pnpm --dir backend run build || echo \"No backend build step\"",
     "start": "NODE_ENV=production node backend/server.js",
+    "start:backend": "pnpm --dir backend run start",
+    "start:frontend": "vite preview",
     "lint": "eslint .",
     "preview": "vite preview"
   },

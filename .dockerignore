@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.gitignore
+pnpm-workspace.yaml
+*.log
+*.swp
+*.local
+*.env
+Dockerfile*
+backend/node_modules
+backend/dist

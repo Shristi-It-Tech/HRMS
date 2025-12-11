@@ -42,6 +42,25 @@ A sophisticated and lightweight HRMS frontend built with React and Vite, designe
 
 Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
+## Running as Two Services (frontend + backend)
+
+This repo now treats the UI and API as two separate deployable apps.
+
+- **Frontend (Vite React app)**
+  - Env: copy `.env.frontend.example` to `.env` and set `VITE_API_BASE_URL` to your API URL.
+  - Dev: `pnpm run dev:frontend`
+  - Build: `pnpm run build:frontend` (outputs to `dist/`)
+  - Preview (production-like): `pnpm run start:frontend`
+  - Docker: `docker build -f Dockerfile.frontend -t hrms-frontend .`
+
+- **Backend (Express + MongoDB API)**
+  - Env: copy `backend/.env.example` to `backend/.env` and set `MONGO_URI`, `JWT_SECRET`, etc.
+  - Dev: `pnpm run dev:backend`
+  - Start (prod): `pnpm run start:backend`
+  - Docker: `docker build -f backend/Dockerfile -t hrms-backend backend`
+
+When deploying, point your frontend hosting provider (e.g., Vercel/Netlify) at the repo root and use `pnpm run build:frontend` as the build command. Deploy the backend separately (e.g., Render/Railway/Docker host) using `backend/Dockerfile`, expose port `4000`, and set the same API URL in the frontend env.
+
 ### Prerequisites
 
 Make sure you have [Node.js](https://nodejs.org/en/) (v16 or higher) and `npm` (or `yarn`/`pnpm`) installed on your system.

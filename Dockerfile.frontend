@@ -1,0 +1,18 @@
+# Multi-stage build for the Vite frontend
+FROM node:20-alpine AS build
+WORKDIR /app
+ENV CI=true
+RUN corepack enable
+
+# Install dependencies and build
+COPY package.json pnpm-lock.yaml vite.config.js index.html ./
+COPY public ./public
+COPY src ./src
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build
+
+# Serve the built assets with nginx
+FROM nginx:1.27-alpine AS runtime
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
